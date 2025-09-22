@@ -80,6 +80,15 @@ EOF
 
 print_success "Frontend environment configured"
 
+# Verify environment variables are set
+print_status "Verifying environment variables..."
+echo "Backend .env:"
+cat /home/ubuntu/Colbin/backend/.env | grep -v SECRET
+echo ""
+echo "Frontend .env:"
+cat /home/ubuntu/Colbin/frontend/.env
+echo ""
+
 # Install dependencies
 print_status "Installing dependencies..."
 
@@ -89,9 +98,21 @@ npm install
 cd /home/ubuntu/Colbin/frontend
 npm install
 
-# Build frontend
-print_status "Building frontend..."
+# Clean previous build and build frontend
+print_status "Cleaning previous build..."
+rm -rf build/
+rm -rf node_modules/.cache/
+
+print_status "Building frontend with production settings..."
 npm run build
+
+# Verify build was successful
+if [ ! -d "build" ]; then
+    print_error "Frontend build failed!"
+    exit 1
+fi
+
+print_success "Frontend build completed"
 
 # Create PM2 ecosystem file
 print_status "Creating PM2 configuration..."

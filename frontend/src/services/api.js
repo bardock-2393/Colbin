@@ -1,6 +1,26 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+// Determine API base URL based on environment
+const getApiBaseUrl = () => {
+  // Check if we're in production (deployed)
+  if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    // Production: use the same host as frontend but port 3001
+    return `http://${window.location.hostname}:3001/api`;
+  }
+  
+  // Use environment variable or fallback to localhost
+  return process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
+// Debug logging
+console.log('API Configuration:', {
+  hostname: window.location.hostname,
+  port: window.location.port,
+  API_BASE_URL: API_BASE_URL,
+  REACT_APP_API_URL: process.env.REACT_APP_API_URL
+});
 
 // Create axios instance
 const api = axios.create({
@@ -8,6 +28,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 10000, // 10 second timeout
 });
 
 // Token management
@@ -77,21 +98,55 @@ api.interceptors.response.use(
 // Auth API
 export const authAPI = {
   register: async (userData) => {
-    const response = await api.post('/auth/register', userData);
-    if (response.data.tokens) {
-      setTokens(response.data.tokens.accessToken, response.data.tokens.refreshToken);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+    try {
+      console.log('Registering user with API:', API_BASE_URL);
+      console.log('User data:', userData);
+      
+      const response = await api.post('/auth/register', userData);
+      
+      console.log('Registration response:', response.data);
+      
+      if (response.data.tokens) {
+        setTokens(response.data.tokens.accessToken, response.data.tokens.refreshToken);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+      return response.data;
+    } catch (error) {
+      console.error('Registration error:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        url: error.config?.url,
+        baseURL: error.config?.baseURL
+      });
+      throw error;
     }
-    return response.data;
   },
 
   login: async (credentials) => {
-    const response = await api.post('/auth/login', credentials);
-    if (response.data.tokens) {
-      setTokens(response.data.tokens.accessToken, response.data.tokens.refreshToken);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+    try {
+      console.log('Logging in user with API:', API_BASE_URL);
+      console.log('Credentials:', { email: credentials.email, password: '[HIDDEN]' });
+      
+      const response = await api.post('/auth/login', credentials);
+      
+      console.log('Login response:', response.data);
+      
+      if (response.data.tokens) {
+        setTokens(response.data.tokens.accessToken, response.data.tokens.refreshToken);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+      return response.data;
+    } catch (error) {
+      console.error('Login error:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        url: error.config?.url,
+        baseURL: error.config?.baseURL
+      });
+      throw error;
     }
-    return response.data;
   },
 
   logout: async () => {
